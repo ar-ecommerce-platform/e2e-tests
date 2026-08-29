@@ -1,0 +1,86 @@
+name: E2E
+
+# Stands up the whole platform from published GHCR images (PostgreSQL profile)
+# and runs the REST Assured suite against the gateway. Not on every push - the
+# per-service CI already builds and unit/slice/integration-tests each service.
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "GHCR image tag to test"
+        default: "develop"
+  schedule:
+    - cron: "30 3 * * *"
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_TAG: ${{ inputs.image_tag || 'develop' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Cross-repo checkout of a private repo needs a PAT (or a GitHub App token);
+      # GITHUB_TOKEN is scoped to this repo only. Set the CI_PAT secret, or make
+      # infra public.
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/infra
+          path: infra
+          token: ${{ secrets.CI_PAT || secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Start the platform
+        working-directory: infra/compose
+        run: |
+          printf 'JWT_SECRET=%s\nJWT_ISSUER=ecommerce-auth\n' "$(openssl rand -hex 32)" > .env
+          docker compose \
+            -f docker-compose.yml -f docker-compose.postgres.yml -f docker-compose.ci.yml \
+            up -d
+
+      - name: Wait for the gateway
+        run: |
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:8080/api/auth/register \
+              -H 'Content-Type: application/json' -d '{"email":"ci@x.com","password":"Passw0rd!"}' || true)
+            [ "$code" = "201" ] || [ "$code" = "409" ] && { echo "gateway ready"; exit 0; }
+            sleep 5
+          done
+          echo "gateway never became ready"; exit 1
+
+      - name: Run e2e suite
+        run: ./gradlew test --no-daemon --console=plain
+
+      - name: Dump logs on failure
+        if: failure()
+        working-directory: infra/compose
+        run: docker compose -f docker-compose.yml -f docker-compose.postgres.yml -f docker-compose.ci.yml logs --tail 100
+
+      - name: Tear down
+        if: always()
+        working-directory: infra/compose
+        run: docker compose -f docker-compose.yml -f docker-compose.postgres.yml -f docker-compose.ci.yml down -v
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-reports
+          path: build/reports/tests/
+          if-no-files-found: ignore
