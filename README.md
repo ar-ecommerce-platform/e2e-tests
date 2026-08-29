@@ -4,8 +4,20 @@ End-to-end API tests for the [ar-ecommerce-platform](https://github.com/ar-ecomm
 Drives the **running** platform through the gateway with REST Assured — the automated version of
 `infra/scripts/demo-flow`.
 
-Covers: register → login → browse products → place order → payment → notification → list orders,
-plus the failure paths (401 unauthenticated, 409 `REJECTED_STOCK`, 402 `PAYMENT_FAILED`).
+## What it checks
+
+`PlatformE2ETest` — one ordered scenario, all through `http://localhost:8080`:
+
+1. `POST /api/auth/register` → 201
+2. `POST /api/auth/login` → captures the bearer token
+3. `GET /api/products` → captures two product ids
+4. `POST /api/orders` → 201, `status: CONFIRMED`, positive `totalCents`; captures order + payment ids
+5. `GET /api/payments/{id}` → `APPROVED`
+6. `GET /api/notifications?userId=` → contains an `ORDER_CONFIRMED`
+7. `GET /api/orders?userId=` → contains the order
+8. unauthenticated `POST /api/orders` → 401
+9. over-stock order (product 5, huge qty) → 409 `REJECTED_STOCK`
+10. order over the payment ceiling → 402 `PAYMENT_FAILED`
 
 ## Run
 
