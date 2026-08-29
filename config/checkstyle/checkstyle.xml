@@ -1,0 +1,156 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<!--
+  ar-ecommerce-platform - shared Checkstyle config.
+
+  Purpose: enforce clean code and bounded complexity. Pure formatting
+  (indentation, import ordering, line wrapping) is owned by Spotless
+  (google-java-format), so it is intentionally not duplicated here.
+
+  Run:  ./gradlew spotlessApply checkstyleMain checkstyleTest
+-->
+<module name="Checker">
+  <property name="charset" value="UTF-8"/>
+  <property name="severity" value="error"/>
+  <property name="fileExtensions" value="java, properties, xml"/>
+
+  <!-- Keep source files a sane length. -->
+  <module name="FileLength">
+    <property name="max" value="400"/>
+  </module>
+  <module name="LineLength">
+    <property name="max" value="120"/>
+    <property name="ignorePattern" value="^package.*|^import.*|href|http://|https://|@see"/>
+  </module>
+
+  <!-- Honour @SuppressWarnings("checkstyle:...") and the suppressions file. -->
+  <module name="SuppressWarningsFilter"/>
+  <module name="SuppressionFilter">
+    <property name="file" value="${org.checkstyle.suppressions.file}"/>
+    <property name="optional" value="true"/>
+  </module>
+
+  <module name="TreeWalker">
+    <module name="SuppressWarningsHolder"/>
+
+    <!-- ============================ COMPLEXITY ============================ -->
+    <!-- The core gate the team cares about: keep methods simple. -->
+    <module name="CyclomaticComplexity">
+      <property name="max" value="10"/>
+    </module>
+    <module name="NPathComplexity">
+      <property name="max" value="50"/>
+    </module>
+    <module name="BooleanExpressionComplexity">
+      <property name="max" value="4"/>
+    </module>
+    <module name="JavaNCSS">
+      <property name="methodMaximum" value="40"/>
+      <property name="classMaximum" value="250"/>
+    </module>
+    <module name="MethodLength">
+      <property name="max" value="60"/>
+      <property name="countEmpty" value="false"/>
+    </module>
+    <module name="ParameterNumber">
+      <property name="max" value="7"/>
+    </module>
+    <module name="NestedIfDepth">
+      <property name="max" value="2"/>
+    </module>
+    <module name="NestedTryDepth">
+      <property name="max" value="1"/>
+    </module>
+    <module name="ReturnCount">
+      <property name="max" value="4"/>
+      <property name="maxForVoid" value="3"/>
+    </module>
+
+    <!-- ========================= LIKELY BUGS ============================= -->
+    <module name="EqualsHashCode"/>
+    <module name="CovariantEquals"/>
+    <module name="StringLiteralEquality"/>
+    <module name="SimplifyBooleanExpression"/>
+    <module name="SimplifyBooleanReturn"/>
+    <module name="MissingSwitchDefault"/>
+    <module name="FallThrough"/>
+    <module name="DefaultComesLast"/>
+    <module name="EmptyStatement"/>
+    <module name="EmptyBlock">
+      <property name="option" value="text"/>
+      <property name="tokens" value="LITERAL_TRY, LITERAL_FINALLY, LITERAL_IF, LITERAL_ELSE,
+        LITERAL_FOR, LITERAL_WHILE, LITERAL_DO, LITERAL_SWITCH"/>
+    </module>
+    <module name="EmptyCatchBlock">
+      <property name="exceptionVariableName" value="expected|ignored"/>
+    </module>
+    <module name="NoFinalizer"/>
+    <module name="OneStatementPerLine"/>
+    <module name="MultipleVariableDeclarations"/>
+    <module name="UnusedLocalVariable"/>
+
+    <!-- ============================ IMPORTS ============================== -->
+    <module name="AvoidStarImport"/>
+    <module name="RedundantImport"/>
+    <module name="UnusedImports">
+      <property name="processJavadoc" value="true"/>
+    </module>
+    <module name="IllegalImport"/>
+
+    <!-- ============================= DESIGN ============================== -->
+    <module name="FinalClass"/>
+    <module name="HideUtilityClassConstructor"/>
+    <module name="OneTopLevelClass"/>
+    <module name="MutableException"/>
+    <module name="VisibilityModifier">
+      <property name="allowPublicFinalFields" value="true"/>
+      <property name="ignoreAnnotationCanonicalNames"
+                value="org.springframework.beans.factory.annotation.Autowired,
+                       org.springframework.beans.factory.annotation.Value"/>
+    </module>
+
+    <!-- ============================ NAMING ============================== -->
+    <module name="PackageName">
+      <property name="format" value="^[a-z]+(\.[a-z][a-z0-9_]*)*$"/>
+    </module>
+    <module name="TypeName"/>
+    <module name="MethodName"/>
+    <module name="MemberName"/>
+    <module name="ParameterName"/>
+    <module name="LocalVariableName"/>
+    <module name="LocalFinalVariableName"/>
+    <module name="ConstantName">
+      <!-- Allow the conventional slf4j logger field name in addition to UPPER_SNAKE. -->
+      <property name="format"
+                value="^(log|logger|[A-Z][A-Z0-9]*(_[A-Z0-9]+)*)$"/>
+    </module>
+    <module name="StaticVariableName"/>
+
+    <!-- ========================== CONVENTIONS ========================== -->
+    <module name="NeedBraces"/>
+    <module name="UpperEll"/>
+    <module name="ArrayTypeStyle"/>
+    <module name="ModifierOrder"/>
+    <module name="RedundantModifier"/>
+    <module name="MagicNumber">
+      <property name="ignoreNumbers" value="-1, 0, 1, 2, 3, 100"/>
+      <property name="ignoreHashCodeMethod" value="true"/>
+      <property name="ignoreAnnotation" value="true"/>
+      <property name="constantWaiverParentToken" value="TYPECAST, METHOD_CALL, EXPR,
+        ARRAY_INIT, UNARY_MINUS, UNARY_PLUS, ELIST, STAR, ASSIGN, PLUS, MINUS, DIV, LITERAL_NEW"/>
+    </module>
+
+    <!-- ============================= JAVADOC =========================== -->
+    <!-- Validate Javadoc that IS written; do not force it onto every member. -->
+    <module name="JavadocMethod">
+      <property name="accessModifiers" value="public"/>
+      <property name="allowMissingParamTags" value="true"/>
+      <property name="allowMissingReturnTag" value="true"/>
+      <property name="allowedAnnotations" value="Override, Test"/>
+    </module>
+    <module name="NonEmptyAtclauseDescription"/>
+  </module>
+</module>

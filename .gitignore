@@ -1,0 +1,11 @@
+HELP.md
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+.idea
+*.iml
+
+# secrets
+.env
+*.env
+!*.env.example

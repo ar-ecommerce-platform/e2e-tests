@@ -1,0 +1,64 @@
+// ---------------------------------------------------------------------------
+// Shared code-quality configuration (vendored, offline, no secrets).
+//
+// Applied from each service's build.gradle via:
+//     apply from: "$rootDir/gradle/quality.gradle"
+//
+// Assumes the including build already declares these plugins:
+//     id 'com.diffplug.spotless'   (formatting)
+//     id 'checkstyle'              (style + complexity gate)
+//     id 'jacoco'                  (coverage report)
+//
+// Deliberately NOT here (they need network / accounts / secrets — they move
+// back in during the CI phase): OWASP Dependency-Check, SonarQube, Snyk.
+// ---------------------------------------------------------------------------
+
+// --- Spotless: canonical formatting, auto-fixable with `./gradlew spotlessApply` ---
+spotless {
+    java {
+        target 'src/**/*.java'
+        googleJavaFormat()
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+// --- Checkstyle: clean-code + complexity rules (see config/checkstyle/checkstyle.xml) ---
+checkstyle {
+    toolVersion = '10.20.1'
+    configFile = file("$rootDir/config/checkstyle/checkstyle.xml")
+    configProperties = [
+        'org.checkstyle.suppressions.file': file("$rootDir/config/checkstyle/suppressions.xml").absolutePath
+    ]
+    ignoreFailures = false
+    maxWarnings = 0
+    showViolations = true
+}
+
+tasks.withType(Checkstyle).configureEach {
+    reports {
+        html.required = true
+        xml.required = true
+    }
+}
+
+// Wire the quality tasks into `check` so `./gradlew build` enforces them.
+tasks.named('check').configure {
+    dependsOn 'spotlessCheck', 'checkstyleMain', 'checkstyleTest'
+}
+
+// --- JaCoCo: coverage REPORT only this session (no hard threshold yet). ---
+// The 80% gate returns in CI once each service has a real test suite.
+tasks.named('test') {
+    useJUnitPlatform()
+    finalizedBy tasks.named('jacocoTestReport')
+}
+
+tasks.named('jacocoTestReport') {
+    dependsOn tasks.named('test')
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
