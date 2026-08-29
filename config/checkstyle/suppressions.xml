@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+    "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+    "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+
+<suppressions>
+  <!-- Tests: allow magic numbers, long fixtures, underscored method names, looser structure. -->
+  <suppress files="[\\/]src[\\/]test[\\/]"
+            checks="MagicNumber|JavaNCSS|MethodLength|MultipleStringLiterals|MethodName|JavadocMethod"/>
+
+  <!-- Spring Boot entrypoints are utility-shaped but need a public class + main. -->
+  <suppress files="Application\.java$" checks="HideUtilityClassConstructor|FinalClass"/>
+
+  <!-- Seed/demo data: literal values are the point. -->
+  <suppress files="Seeder\.java$|[\\/]bootstrap[\\/]" checks="MagicNumber"/>
+
+  <!-- Generated / build output. -->
+  <suppress files="[\\/]build[\\/]" checks=".*"/>
+</suppressions>
