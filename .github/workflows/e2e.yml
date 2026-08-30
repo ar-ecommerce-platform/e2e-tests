@@ -66,7 +66,7 @@ jobs:
           echo "gateway never became ready"; exit 1
 
       - name: Run e2e suite
-        run: ./gradlew test --no-daemon --console=plain
+        run: chmod +x gradlew && ./gradlew test --no-daemon --console=plain
 
       - name: Dump logs on failure
         if: failure()
