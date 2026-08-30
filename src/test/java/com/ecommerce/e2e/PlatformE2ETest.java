@@ -52,7 +52,9 @@ class PlatformE2ETest {
               .post("/api/auth/register")
               .thenReturn()
               .statusCode();
-    } catch (RuntimeException notReachable) {
+    } catch (Exception notReachable) {
+      // any failure to reach the gateway (incl. java.net.ConnectException, which is
+      // a checked exception, not a RuntimeException) means "no stack" -> skip
       status = -1;
     }
     assumeThat(status)
