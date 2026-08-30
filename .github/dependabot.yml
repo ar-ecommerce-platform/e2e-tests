@@ -1,6 +1,6 @@
-# Grouped, weekly dependency updates. One PR per ecosystem per week.
-# Major bumps for the framework (Spring Boot / Spring Cloud) are held back —
-# those are deliberate upgrades, not automatic.
+# Grouped, weekly dependency updates: at most one PR per ecosystem per week.
+# Major version bumps are ignored across the board - those are deliberate,
+# reviewed upgrades (Spring Boot 4, Gradle 9, JDK 25, ...), not automatic.
 version: 2
 updates:
   - package-ecosystem: "gradle"
@@ -13,11 +13,9 @@ updates:
       prefix: "build(deps)"
     groups:
       gradle:
-        update-types: ["minor", "patch"]
+        patterns: ["*"]
     ignore:
-      - dependency-name: "org.springframework.boot"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "org.springframework.cloud*"
+      - dependency-name: "*"
         update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
@@ -41,3 +39,6 @@ updates:
     groups:
       docker:
         patterns: ["*"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
