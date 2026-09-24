@@ -46,7 +46,7 @@ jobs:
       - name: Start the platform
         working-directory: infra/compose
         run: |
-          printf 'JWT_SECRET=%s\nJWT_ISSUER=ecommerce-auth\n' "$(openssl rand -hex 32)" > .env
+          printf 'JWT_SECRET=%s\nJWT_ISSUER=ecommerce-auth\nPOSTGRES_PASSWORD=%s\n' "$(openssl rand -hex 32)" "$(openssl rand -hex 16)" > .env
           docker compose \
             -f docker-compose.yml -f docker-compose.postgres.yml -f docker-compose.ci.yml \
             up -d
