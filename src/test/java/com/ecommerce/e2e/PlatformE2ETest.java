@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 
 import io.restassured.RestAssured;
@@ -107,8 +108,6 @@ class PlatformE2ETest {
             .contentType(JSON)
             .body(
                 Map.of(
-                    "userId",
-                    email,
                     "items",
                     List.of(
                         Map.of("productId", productA, "quantity", 2),
@@ -126,19 +125,19 @@ class PlatformE2ETest {
 
   @Test
   @Order(5)
-  void paymentApproved() {
+  void orderShowsApprovedPayment() {
     authed()
-        .get("/api/payments/{id}", paymentId)
+        .get("/api/orders/{id}", orderId)
         .then()
         .statusCode(200)
-        .body("status", equalTo("APPROVED"));
+        .body("status", equalTo("CONFIRMED"))
+        .body("paymentId", equalTo((int) paymentId));
   }
 
   @Test
   @Order(6)
   void notificationRecorded() {
     authed()
-        .queryParam("userId", email)
         .get("/api/notifications")
         .then()
         .statusCode(200)
@@ -148,12 +147,7 @@ class PlatformE2ETest {
   @Test
   @Order(7)
   void orderListedForUser() {
-    authed()
-        .queryParam("userId", email)
-        .get("/api/orders")
-        .then()
-        .statusCode(200)
-        .body("id", hasItem((int) orderId));
+    authed().get("/api/orders").then().statusCode(200).body("id", hasItem((int) orderId));
   }
 
   @Test
@@ -161,8 +155,7 @@ class PlatformE2ETest {
   void unauthenticatedOrderIsRejected() {
     given()
         .contentType(JSON)
-        .body(
-            Map.of("userId", email, "items", List.of(Map.of("productId", productA, "quantity", 1))))
+        .body(Map.of("items", List.of(Map.of("productId", productA, "quantity", 1))))
         .post("/api/orders")
         .then()
         .statusCode(401);
@@ -173,7 +166,7 @@ class PlatformE2ETest {
   void overStockOrderIsRejected() {
     authed()
         .contentType(JSON)
-        .body(Map.of("userId", email, "items", List.of(Map.of("productId", 5, "quantity", 9999))))
+        .body(Map.of("items", List.of(Map.of("productId", 5, "quantity", 9999))))
         .post("/api/orders")
         .then()
         .statusCode(409)
@@ -185,15 +178,58 @@ class PlatformE2ETest {
   void orderOverPaymentCeilingIsRejected() {
     authed()
         .contentType(JSON)
-        .body(
-            Map.of("userId", email, "items", List.of(Map.of("productId", productA, "quantity", 5))))
+        .body(Map.of("items", List.of(Map.of("productId", productA, "quantity", 5))))
         .post("/api/orders")
         .then()
         .statusCode(402)
         .body("code", equalTo("PAYMENT_FAILED"));
   }
 
+  @Test
+  @Order(11)
+  void anotherUserCannotSeeMyData() {
+    String other = "e2e-other-" + System.currentTimeMillis() + "@example.com";
+    given()
+        .contentType(JSON)
+        .body(Map.of("email", other, "password", password))
+        .post("/api/auth/register")
+        .then()
+        .statusCode(201);
+    String otherToken =
+        given()
+            .contentType(JSON)
+            .body(Map.of("email", other, "password", password))
+            .post("/api/auth/login")
+            .then()
+            .statusCode(200)
+            .extract()
+            .path("token");
+
+    // Not "forbidden" but "not found": don't even confirm the order exists.
+    as(otherToken).get("/api/orders/{id}", orderId).then().statusCode(404);
+    // Claiming to be me via the identity header changes nothing - the gateway overwrites it.
+    as(otherToken)
+        .header("X-User-Id", email)
+        .get("/api/orders")
+        .then()
+        .statusCode(200)
+        .body("id", not(hasItem((int) orderId)));
+    as(otherToken)
+        .header("X-User-Id", email)
+        .get("/api/notifications")
+        .then()
+        .statusCode(200)
+        .body("size()", equalTo(0));
+    // Internal endpoints are not reachable from outside at all.
+    as(otherToken).get("/api/payments/{id}", paymentId).then().statusCode(403);
+    as(otherToken).get("/api/users").then().statusCode(403);
+  }
+
   private RequestSpecification authed() {
-    return given().header("Authorization", "Bearer " + token);
+    return as(token);
+  }
+
+  private static RequestSpecification as(String bearer) {
+    return given().header("Authorization", "Bearer " + bearer);
   }
 }
