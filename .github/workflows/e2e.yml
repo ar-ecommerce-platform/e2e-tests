@@ -9,7 +9,7 @@ on:
     inputs:
       image_tag:
         description: "GHCR image tag to test"
-        default: "develop"
+        default: "main"
   schedule:
     - cron: "30 3 * * *"
 
@@ -21,18 +21,14 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     env:
-      IMAGE_TAG: ${{ inputs.image_tag || 'develop' }}
+      IMAGE_TAG: ${{ inputs.image_tag || 'main' }}
     steps:
       - uses: actions/checkout@v5
 
-      # Cross-repo checkout of a private repo needs a PAT (or a GitHub App token);
-      # GITHUB_TOKEN is scoped to this repo only. Set the CI_PAT secret, or make
-      # infra public.
       - uses: actions/checkout@v5
         with:
           repository: ${{ github.repository_owner }}/infra
           path: infra
-          token: ${{ secrets.CI_PAT || secrets.GITHUB_TOKEN }}
 
       - uses: actions/setup-java@v5
         with:
