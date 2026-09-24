@@ -147,11 +147,7 @@ class PlatformE2ETest {
   @Test
   @Order(7)
   void orderListedForUser() {
-    authed()
-        .get("/api/orders")
-        .then()
-        .statusCode(200)
-        .body("id", hasItem((int) orderId));
+    authed().get("/api/orders").then().statusCode(200).body("id", hasItem((int) orderId));
   }
 
   @Test
@@ -159,8 +155,7 @@ class PlatformE2ETest {
   void unauthenticatedOrderIsRejected() {
     given()
         .contentType(JSON)
-        .body(
-            Map.of("items", List.of(Map.of("productId", productA, "quantity", 1))))
+        .body(Map.of("items", List.of(Map.of("productId", productA, "quantity", 1))))
         .post("/api/orders")
         .then()
         .statusCode(401);
@@ -183,8 +178,7 @@ class PlatformE2ETest {
   void orderOverPaymentCeilingIsRejected() {
     authed()
         .contentType(JSON)
-        .body(
-            Map.of("items", List.of(Map.of("productId", productA, "quantity", 5))))
+        .body(Map.of("items", List.of(Map.of("productId", productA, "quantity", 5))))
         .post("/api/orders")
         .then()
         .statusCode(402)
