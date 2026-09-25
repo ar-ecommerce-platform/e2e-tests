@@ -1,2 +1,5 @@
-*.java text eol=lf
-*.gradle text eol=lf
+# LF everywhere so scripts run in Docker/CI and spotless passes on Windows checkouts.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.jar binary
