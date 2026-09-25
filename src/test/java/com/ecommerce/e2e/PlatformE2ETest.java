@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 
@@ -223,6 +224,22 @@ class PlatformE2ETest {
     // Internal endpoints are not reachable from outside at all.
     as(otherToken).get("/api/payments/{id}", paymentId).then().statusCode(403);
     as(otherToken).get("/api/users").then().statusCode(403);
+  }
+
+  @Test
+  @Order(12)
+  void apiDocsAreServedThroughTheGateway() {
+    given().get("/swagger-ui/index.html").then().statusCode(200);
+    // Each spec must point "Try it out" at the gateway, not at the service's private address.
+    for (String service : List.of("auth", "products", "inventory", "orders", "notifications")) {
+      given()
+          .get("/api/{service}/api-docs", service)
+          .then()
+          .statusCode(200)
+          .body("servers.url", hasItem("/api"));
+    }
+    // Internal endpoints stay out of the public docs.
+    given().get("/api/users/api-docs").then().statusCode(200).body("paths", not(hasKey("/users")));
   }
 
   private RequestSpecification authed() {
